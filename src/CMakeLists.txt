@@ -175,9 +175,10 @@ set(KSNIP_SRCS
 if (APPLE)
         list(APPEND KSNIP_SRCS
                 ${CMAKE_SOURCE_DIR}/src/backend/imageGrabber/MacImageGrabber.cpp
-                ${CMAKE_SOURCE_DIR}/src/backend/imageGrabber/MacWrapper.cpp
+                ${CMAKE_SOURCE_DIR}/src/backend/imageGrabber/MacWrapper.mm
                 ${CMAKE_SOURCE_DIR}/src/backend/config/MacConfig.cpp
                 ${CMAKE_SOURCE_DIR}/src/gui/snippingArea/MacSnippingArea.cpp
+                ${CMAKE_SOURCE_DIR}/src/gui/screenCapturePermission/MacScreenCapturePermission.cpp
                 ${CMAKE_SOURCE_DIR}/src/gui/globalHotKeys/keyHandler/MacKeyHandler.cpp
                 ${CMAKE_SOURCE_DIR}/src/gui/globalHotKeys/KeySequenceToMacKeyCodeTranslator.cpp
 				${CMAKE_SOURCE_DIR}/src/plugins/searchPathProvider/MacPluginSearchPathProvider.cpp
@@ -270,10 +271,14 @@ elseif (UNIX AND NOT APPLE)
 endif ()
 
 if (APPLE)
+        set_source_files_properties(${CMAKE_SOURCE_DIR}/src/backend/imageGrabber/MacWrapper.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+endif ()
+
+if (APPLE)
         list(APPEND DEPENDENCY_LIBRARIES
                 kImageAnnotator::kImageAnnotator
                 kColorPicker::kColorPicker
-                "-framework CoreGraphics -framework AppKit"
+                "-framework CoreGraphics -framework AppKit -framework Carbon"
                 )
 elseif (UNIX)
         list(APPEND DEPENDENCY_LIBRARIES

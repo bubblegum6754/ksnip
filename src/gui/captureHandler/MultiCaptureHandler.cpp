@@ -207,6 +207,10 @@ void MultiCaptureHandler::load(const CaptureDto &capture)
 	auto filename = mNewCaptureNameProvider.nextName(path);
 	auto index = mImageAnnotator->addTab(capture.screenshot, filename, path);
 	mTabStateHandler->add(index, filename, path, isSaved);
+	if (capture.devicePixelRatio > 1.0) {
+		// Show the screenshot at the size it had on the screen
+		mImageAnnotator->setZoomValue(1.0 / capture.devicePixelRatio);
+	}
 	if (capture.isCursorValid()) {
 		mImageAnnotator->insertImageItem(capture.cursor.position, capture.cursor.image);
 	}

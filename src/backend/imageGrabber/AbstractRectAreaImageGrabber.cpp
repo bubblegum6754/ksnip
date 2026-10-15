@@ -141,6 +141,14 @@ QPixmap AbstractRectAreaImageGrabber::getScreenshot() const
 	}
 }
 
+/*
+ * Ratio between the pixels of the last screenshot and the points of the screen.
+ */
+qreal AbstractRectAreaImageGrabber::screenshotDevicePixelRatio() const
+{
+	return 1.0;
+}
+
 QPixmap AbstractRectAreaImageGrabber::getScreenshotFromBackground() const
 {
 	return snippingAreaBackground().copy(mCaptureRect);
@@ -188,6 +196,7 @@ void AbstractRectAreaImageGrabber::grab()
 {
 	setCaptureRectFromCorrectSource();
 	CaptureDto capture(getScreenshot());
+	capture.devicePixelRatio = screenshotDevicePixelRatio();
 
 	if (shouldCaptureCursor()) {
 		capture.cursor = getCursorRelativeToScreenshot();

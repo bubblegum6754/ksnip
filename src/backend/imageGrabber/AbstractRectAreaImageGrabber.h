@@ -46,12 +46,14 @@ protected:
     void openSnippingAreaWithBackground(const QPixmap &background);
     QRect selectedSnippingAreaRect() const;
 	QPixmap snippingAreaBackground() const;
-	QPixmap getScreenshotFromRect(const QRect &rect) const;
-	QPixmap getScreenshot() const;
+	virtual QPixmap getScreenshotFromRect(const QRect &rect) const;
+	virtual QPixmap getScreenshot() const;
+	virtual qreal screenshotDevicePixelRatio() const;
 	virtual QPixmap getScreenshotFromBackground() const;
 	void setCaptureRectFromCorrectSource();
 	virtual bool isSnippingAreaBackgroundTransparent() const;
 	virtual CursorDto getCursorWithPosition() const = 0;
+	virtual CursorDto getCursorRelativeToScreenshot() const;
 
 protected slots:
 	void prepareGrab();
@@ -69,7 +71,6 @@ private:
 	CursorDto getCursorImageWithPositionFromCorrectSource() const;
 	bool isRectAreaCaptureWithBackground() const;
 	bool isRectAreaCaptureWithoutBackground() const;
-	CursorDto getCursorRelativeToScreenshot() const;
     void storeCursorForPostProcessing(const QRect &screenRect);
 };
 

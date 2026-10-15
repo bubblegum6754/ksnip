@@ -934,4 +934,45 @@ void MultiCaptureHandlerTests::SaveAll_Should_CallSaveForAllTabs_When_TabIsNotSa
 	multiCaptureHandler.saveAll();
 }
 
+void MultiCaptureHandlerTests::Load_Should_SetZoomToInverseOfDevicePixelRatio_When_RatioIsAboveOne()
+{
+	// arrange
+	ImageAnnotatorMock imageAnnotatorMock;
+	auto captureTabStateHandlerMock = QSharedPointer<CaptureTabStateHandlerMock>(new CaptureTabStateHandlerMock);
+	auto configMock = QSharedPointer<ConfigMock>(new ConfigMock);
+	auto iconLoaderMock = QSharedPointer<IconLoaderMock>(new IconLoaderMock);
+
+	EXPECT_CALL(imageAnnotatorMock, addTabContextMenuActions(testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setTabBarAutoHide(testing::_));
+	EXPECT_CALL(*configMock, autoHideTabs());
+	EXPECT_CALL(*iconLoaderMock, loadForTheme(testing::_))
+			.WillRepeatedly(testing::Return(QIcon()));
+
+	EXPECT_CALL(imageAnnotatorMock, addTab(testing::_, testing::_, testing::_))
+			.WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*captureTabStateHandlerMock, add(testing::_, testing::_, testing::_, testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setZoomValue(0.5)).Times(testing::Exactly(1));
+
+	MultiCaptureHandler multiCaptureHandler(
+			&imageAnnotatorMock,
+			nullptr,
+			captureTabStateHandlerMock,
+			configMock,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			iconLoaderMock,
+			nullptr,
+			nullptr);
+	auto capture = CaptureDto(QPixmap());
+	capture.devicePixelRatio = 2.0;
+
+	// act & assert
+	multiCaptureHandler.load(capture);
+}
+
 TEST_MAIN(MultiCaptureHandlerTests)

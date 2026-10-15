@@ -26,6 +26,8 @@ struct CaptureDto
 {
 	QPixmap screenshot;
 	CursorDto cursor;
+	// Pixels of the screenshot per point of the screen, the editor shows it at 1 / ratio
+	qreal devicePixelRatio = 1.0;
 
 	explicit CaptureDto() = default;
 
