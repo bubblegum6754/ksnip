@@ -162,6 +162,10 @@ void SingleCaptureHandler::load(const CaptureDto &capture)
 	mPath = mPathFromCaptureProvider.pathFrom(capture);
 	mIsSaved = PathHelper::isPathValid(mPath);
 	mImageAnnotator->loadImage(capture.screenshot);
+	if (capture.devicePixelRatio > 1.0) {
+		// Show the screenshot at the size it had on the screen
+		mImageAnnotator->setZoomValue(1.0 / capture.devicePixelRatio);
+	}
 	if (capture.isCursorValid()) {
 		mImageAnnotator->insertImageItem(capture.cursor.position, capture.cursor.image);
 	}

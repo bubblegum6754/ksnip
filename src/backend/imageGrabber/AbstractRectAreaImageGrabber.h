@@ -48,6 +48,7 @@ protected:
 	QPixmap snippingAreaBackground() const;
 	virtual QPixmap getScreenshotFromRect(const QRect &rect) const;
 	virtual QPixmap getScreenshot() const;
+	virtual qreal screenshotDevicePixelRatio() const;
 	virtual QPixmap getScreenshotFromBackground() const;
 	void setCaptureRectFromCorrectSource();
 	virtual bool isSnippingAreaBackgroundTransparent() const;

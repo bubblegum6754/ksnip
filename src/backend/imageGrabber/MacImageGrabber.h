@@ -38,9 +38,11 @@ protected slots:
 	QPixmap getScreenshotFromRect(const QRect &rect) const override;
 	QPixmap getScreenshotFromBackground() const override;
 	QPixmap getScreenshot() const override;
+	qreal screenshotDevicePixelRatio() const override;
 
 private:
     MacWrapper *mMacWrapper;
+    mutable qreal mScreenshotRatio = 1.0;
 };
 
 

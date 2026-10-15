@@ -108,7 +108,13 @@ QPixmap MacImageGrabber::getScreenshotFromBackground() const
 QPixmap MacImageGrabber::getScreenshot() const
 {
     auto screenshot = AbstractRectAreaImageGrabber::getScreenshot();
+    mScreenshotRatio = screenshot.devicePixelRatio();
     // The editor and the save operations expect the pixel size of the image, so it must not be scaled by the ratio
     screenshot.setDevicePixelRatio(1.0);
     return screenshot;
+}
+
+qreal MacImageGrabber::screenshotDevicePixelRatio() const
+{
+    return mScreenshotRatio;
 }

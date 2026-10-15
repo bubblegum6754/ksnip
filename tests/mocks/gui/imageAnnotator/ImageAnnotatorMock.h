@@ -48,6 +48,7 @@ public:
 	MOCK_METHOD(int, addTab, (const QPixmap &pixmap, const QString &title, const QString &toolTip), (override));
 	MOCK_METHOD(void, updateTabInfo, (int index, const QString &title, const QString &toolTip), (override));
 	MOCK_METHOD(void, insertImageItem, (const QPointF &position, const QPixmap &pixmap), (override));
+	MOCK_METHOD(void, setZoomValue, (double value), (override));
 	MOCK_METHOD(void, setSmoothPathEnabled, (bool enabled), (override));
 	MOCK_METHOD(void, setSaveToolSelection, (bool enabled), (override));
 	MOCK_METHOD(void, setSmoothFactor, (int factor), (override));

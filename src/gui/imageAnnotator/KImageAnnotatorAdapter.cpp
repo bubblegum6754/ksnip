@@ -119,6 +119,11 @@ void KImageAnnotatorAdapter::insertImageItem(const QPointF &position, const QPix
 	mKImageAnnotator->insertImageItem(position, pixmap);
 }
 
+void KImageAnnotatorAdapter::setZoomValue(double value)
+{
+	mKImageAnnotator->setZoomValue(value);
+}
+
 void KImageAnnotatorAdapter::setSmoothPathEnabled(bool enabled)
 {
 	mKImageAnnotator->setSmoothPathEnabled(enabled);

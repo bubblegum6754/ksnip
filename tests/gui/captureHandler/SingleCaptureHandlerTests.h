@@ -30,6 +30,8 @@ private slots:
     void RemoveImage_Should_NotCleanupAnnotationData_When_ImageWasNotDeleted();
     void Load_Should_SetPathAndIsSavedToValuesFromCaptureDto_When_CaptureLoadedFromFile();
     void Load_Should_SetPathToEmptyAndIsSavedToFalse_When_CaptureNotLoadedFromFile();
+    void Load_Should_SetZoomToInverseOfDevicePixelRatio_When_RatioIsAboveOne();
+    void Load_Should_NotSetZoom_When_RatioIsOne();
 
 };
 

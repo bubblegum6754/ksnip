@@ -203,4 +203,73 @@ void SingleCaptureHandlerTests::Load_Should_SetPathToEmptyAndIsSavedToFalse_When
     QCOMPARE(captureHandler.isSaved(), false);
 }
 
+void SingleCaptureHandlerTests::Load_Should_SetZoomToInverseOfDevicePixelRatio_When_RatioIsAboveOne()
+{
+	// arrange
+	ImageAnnotatorMock imageAnnotatorMock;
+	auto notificationServiceMock = QSharedPointer<NotificationServiceMock>(new NotificationServiceMock);
+	auto clipboardMock = QSharedPointer<ClipboardMock>(new ClipboardMock);
+	auto desktopServiceMock = QSharedPointer<DesktopServiceMock>(new DesktopServiceMock);
+	auto fileServiceMock = QSharedPointer<FileServiceMock>(new FileServiceMock);
+	auto messageBoxServiceMock = QSharedPointer<MessageBoxServiceMock>(new MessageBoxServiceMock);
+	auto recentImageServiceMock = QSharedPointer<RecentImageServiceMock>(new RecentImageServiceMock);
+
+	EXPECT_CALL(imageAnnotatorMock, loadImage(testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setTabBarAutoHide(testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setZoomValue(0.5)).Times(testing::Exactly(1));
+
+	SingleCaptureHandler captureHandler(
+			&imageAnnotatorMock,
+			notificationServiceMock,
+			clipboardMock,
+			desktopServiceMock,
+			fileServiceMock,
+			messageBoxServiceMock,
+			recentImageServiceMock,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr);
+	auto capture = CaptureDto(QPixmap());
+	capture.devicePixelRatio = 2.0;
+
+	// act & assert
+	captureHandler.load(capture);
+}
+
+void SingleCaptureHandlerTests::Load_Should_NotSetZoom_When_RatioIsOne()
+{
+	// arrange
+	ImageAnnotatorMock imageAnnotatorMock;
+	auto notificationServiceMock = QSharedPointer<NotificationServiceMock>(new NotificationServiceMock);
+	auto clipboardMock = QSharedPointer<ClipboardMock>(new ClipboardMock);
+	auto desktopServiceMock = QSharedPointer<DesktopServiceMock>(new DesktopServiceMock);
+	auto fileServiceMock = QSharedPointer<FileServiceMock>(new FileServiceMock);
+	auto messageBoxServiceMock = QSharedPointer<MessageBoxServiceMock>(new MessageBoxServiceMock);
+	auto recentImageServiceMock = QSharedPointer<RecentImageServiceMock>(new RecentImageServiceMock);
+
+	EXPECT_CALL(imageAnnotatorMock, loadImage(testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setTabBarAutoHide(testing::_));
+	EXPECT_CALL(imageAnnotatorMock, setZoomValue(testing::_)).Times(testing::Exactly(0));
+
+	SingleCaptureHandler captureHandler(
+			&imageAnnotatorMock,
+			notificationServiceMock,
+			clipboardMock,
+			desktopServiceMock,
+			fileServiceMock,
+			messageBoxServiceMock,
+			recentImageServiceMock,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr);
+	auto capture = CaptureDto(QPixmap());
+
+	// act & assert
+	captureHandler.load(capture);
+}
+
 TEST_MAIN(SingleCaptureHandlerTests)
