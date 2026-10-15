@@ -1,0 +1,333 @@
+name: fork test
+
+# Test and package builds for a fork, not meant for upstream.
+#
+# - Runs only when started on purpose: by pushing a tag named ci-* (for example
+#   ci-1), never by a push to a branch. The manual start button of GitHub only
+#   works for workflow files on the default branch.
+# - kImageAnnotator is built from KIA_REPO at KIA_BRANCH, so changes that are not
+#   released yet can be tested.
+# - Nothing is signed and no release is created, the packages are workflow artifacts.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: [ 'ci-*' ]
+
+env:
+  KIA_REPO: bubblegum6754/kImageAnnotator
+  KIA_BRANCH: beta
+
+concurrency:
+  group: fork-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        qtversion: ['5.15.2', '6.8.1']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up build variables
+        env:
+          QT_VERSION: ${{ matrix.qtversion }}
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up linux build variables
+        run: bash ./.github/scripts/linux/setup_linux_build_variables.sh
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qtversion }}
+          host: 'linux'
+          install-deps: 'true'
+
+      - name: Install dependencies
+        run: sudo apt-get install extra-cmake-modules libxcb-xfixes0-dev xvfb
+
+      - name: Install Qt6 dependencies
+        run: sudo apt-get install libxcb-cursor-dev
+
+      - name: Set up GoogleTest
+        run: bash ./.github/scripts/setup_googleTest.sh
+
+      - name: Set up kColorPicker
+        env:
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/setup_kColorPicker.sh
+
+      - name: Set up kImageAnnotator
+        env:
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/fork/setup_kImageAnnotator.sh
+
+      - name: Build
+        env:
+          BUILD_TESTS: ON
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/build_ksnip.sh
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build/tests
+        run: xvfb-run --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" ctest --extra-verbose
+
+  package-appImage:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up linux build variables
+        run: bash ./.github/scripts/linux/setup_linux_build_variables.sh
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'linux'
+          install-deps: 'true'
+
+      - name: Install dependencies
+        run: sudo apt-get install extra-cmake-modules libxcb-xfixes0-dev libssl-dev
+
+      - name: Install Qt6 dependencies
+        run: sudo apt-get install libxcb-cursor-dev
+
+      - name: Set up kColorPicker
+        run: bash ./.github/scripts/setup_kColorPicker.sh
+
+      - name: Set up kImageAnnotator
+        run: bash ./.github/scripts/fork/setup_kImageAnnotator.sh
+
+      - name: Download deploy tool
+        run: |
+          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+
+      - name: Package AppImage
+        working-directory: ${{github.workspace}}
+        run: bash ./.github/scripts/linux/build_appImage.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ksnip-linux-appimage
+          path: ksnip*.AppImage*
+          retention-days: 14
+
+  package-deb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up linux build variables
+        run: bash ./.github/scripts/linux/setup_linux_build_variables.sh
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'linux'
+          install-deps: 'true'
+
+      - name: Install dependencies
+        run: sudo apt-get install cmake extra-cmake-modules libxcb-xfixes0-dev libssl-dev devscripts debhelper
+
+      - name: Install Qt6 dependencies
+        run: sudo apt-get install libxcb-cursor-dev
+
+      - name: Set up kColorPicker
+        run: bash ./.github/scripts/setup_kColorPicker.sh
+
+      - name: Set up kImageAnnotator
+        run: bash ./.github/scripts/fork/setup_kImageAnnotator.sh
+
+      - name: Set up directory structure
+        run: bash ./.github/scripts/linux/deb/setup_deb_directory_structure.sh
+
+      - name: Set up changelog
+        run: bash ./.github/scripts/linux/deb/setup_changelog_file.sh
+
+      - name: Package deb
+        run: bash ./.github/scripts/linux/deb/build_deb.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ksnip-linux-deb
+          path: ksnip-*.deb
+          retention-days: 14
+
+  test-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up windows build variables
+        run: bash ./.github/scripts/windows/setup_windows_build_variables.sh
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          install-deps: 'true'
+          arch: 'win64_msvc2019_64'
+
+      - name: Set up nmake
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up kColorPicker
+        env:
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/setup_kColorPicker.sh
+
+      - name: Set up kImageAnnotator
+        env:
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/fork/setup_kImageAnnotator.sh
+
+      - name: Set up GoogleTest
+        run: bash ./.github/scripts/setup_googleTest.sh
+
+      - name: Add GoogleTest bin dir to PATH
+        uses: myci-actions/export-env-var-powershell@1
+        with:
+          name: PATH
+          value: $env:PATH;$env:INSTALL_PREFIX/bin
+
+      - name: Build
+        env:
+          BUILD_TESTS: ON
+          BUILD_TYPE: Debug
+        run: bash ./.github/scripts/build_ksnip.sh
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build/tests
+        run: ctest --extra-verbose
+
+  package-windows-zip:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up windows build variables
+        run: bash ./.github/scripts/windows/setup_windows_build_variables.sh
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          install-deps: 'true'
+          arch: 'win64_msvc2019_64'
+
+      - name: Set up nmake
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up kColorPicker
+        run: bash ./.github/scripts/setup_kColorPicker.sh
+
+      - name: Set up kImageAnnotator
+        run: bash ./.github/scripts/fork/setup_kImageAnnotator.sh
+
+      - name: Build
+        run: bash ./.github/scripts/build_ksnip.sh
+
+      - name: Download OpenSSL
+        run: |
+          curl -L "https://github.com/ksnip/dependencies/raw/master/windows/openSSL.zip" --output openssl.zip
+          7z x openssl.zip -o"${{ env.OPENSSL_DIR }}"
+
+      - name: Download CompileRuntime
+        run: |
+          curl -L "https://github.com/ksnip/dependencies/raw/master/windows/compileRuntime.zip" --output compileruntime.zip
+          7z x compileruntime.zip -o"${{ env.COMPILE_RUNTIME_DIR }}"
+
+      - name: Package exe
+        run: bash ./.github/scripts/windows/package_exe.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ksnip-windows-zip
+          path: ksnip-*.zip
+          retention-days: 14
+
+  # Tests only, the macOS app is packaged locally.
+  # arm64 is the architecture of the runner, arm64;x86_64 is the universal build that
+  # the macOS package job uses with the universal build change.
+  test-macos:
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        architectures: ['arm64', 'arm64;x86_64']
+    env:
+      QT_VERSION: "6.8"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Use kImageAnnotator from the fork and kColorPicker at its latest tag
+        run: |
+          rm -rf libraries/kImageAnnotator
+          git clone --depth 1 --branch "${KIA_BRANCH}" "https://github.com/${KIA_REPO}.git" libraries/kImageAnnotator
+          git -C libraries/kImageAnnotator log --oneline -1
+          git -C libraries/kColorPicker fetch --tags --force
+          git -C libraries/kColorPicker checkout -q "$(git -C libraries/kColorPicker tag --list 'v*' --sort=-v:refname | head -n 1)"
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up macos build variables
+        run: |
+          echo "MAKE_BINARY=make" >> $GITHUB_ENV
+          echo "CMAKE_GENERATOR=Unix Makefiles" >> $GITHUB_ENV
+          echo "CMAKE_OSX_ARCHITECTURES=${{ matrix.architectures }}" >> $GITHUB_ENV
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8"
+          host: "mac"
+          arch: "clang_64"
+          install-deps: "true"
+
+      - name: Set up GoogleTest
+        run: bash ./.github/scripts/setup_googleTest.sh
+
+      - name: Build
+        env:
+          BUILD_TESTS: ON
+          BUILD_TYPE: Debug
+          USE_SUBMODULE_KCOLORPICKER: ON
+          USE_SUBMODULE_KIMAGEANNOTATOR: ON
+        run: bash ./.github/scripts/build_ksnip.sh
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build/tests
+        run: ctest --extra-verbose
