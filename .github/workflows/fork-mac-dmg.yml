@@ -1,0 +1,100 @@
+name: fork mac dmg
+
+# Builds a macOS dmg for a fork, not meant for upstream.
+#
+# - Runs only when started on purpose: by pushing a tag named dmg-* (for example
+#   dmg-1), never by a push to a branch.
+# - kImageAnnotator is built from KIA_REPO at KIA_BRANCH, so changes that are not
+#   released yet can be tested.
+# - Universal build (arm64 and x86_64), only ad hoc signed, not notarized. The app
+#   is named "ksnip beta" with its own bundle identifier, so it can be installed next
+#   to the official ksnip and gets its own Screen Recording permission.
+
+on:
+  push:
+    tags: [ 'dmg-*' ]
+
+permissions:
+  contents: read
+
+env:
+  KIA_REPO: bubblegum6754/kImageAnnotator
+  KIA_BRANCH: beta
+  QT_VERSION: "6.8"
+
+jobs:
+  package-dmg:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Use kImageAnnotator from the fork and kColorPicker at its latest tag
+        run: |
+          rm -rf libraries/kImageAnnotator
+          git clone --depth 1 --branch "${KIA_BRANCH}" "https://github.com/${KIA_REPO}.git" libraries/kImageAnnotator
+          git -C libraries/kImageAnnotator log --oneline -1
+          git -C libraries/kColorPicker fetch --tags --force
+          git -C libraries/kColorPicker checkout -q "$(git -C libraries/kColorPicker tag --list 'v*' --sort=-v:refname | head -n 1)"
+
+      - name: Set up build variables
+        run: bash ./.github/scripts/setup_build_variables.sh
+
+      - name: Set up macos build variables
+        run: |
+          echo "MAKE_BINARY=make" >> $GITHUB_ENV
+          echo "CMAKE_GENERATOR=Unix Makefiles" >> $GITHUB_ENV
+          echo "CMAKE_OSX_ARCHITECTURES=arm64;x86_64" >> $GITHUB_ENV
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8"
+          host: "mac"
+          arch: "clang_64"
+          install-deps: "true"
+
+      - name: Build
+        env:
+          USE_SUBMODULE_KCOLORPICKER: ON
+          USE_SUBMODULE_KIMAGEANNOTATOR: ON
+        run: bash ./.github/scripts/build_ksnip.sh
+
+      - name: Package dmg
+        run: |
+          set -e
+          APP="ksnip beta.app"
+          mv build/src/ksnip*.app "$APP"
+          cp build/translations/ksnip_*.qm "$APP/Contents/Resources/"
+          cp build/kImageAnnotator/translations/kImageAnnotator_*.qm "$APP/Contents/Resources/"
+
+          PLIST="$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier org.ksnip.ksnip.beta" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName ksnip beta" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string ksnip beta" "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ksnip beta" "$PLIST"
+
+          macdeployqt "$APP"
+
+          echo "Architectures of ksnip:   $(lipo -archs "$APP/Contents/MacOS/ksnip")"
+          echo "Architectures of QtCore:  $(lipo -archs "$APP/Contents/Frameworks/QtCore.framework/Versions/A/QtCore")"
+          lipo -archs "$APP/Contents/MacOS/ksnip" | grep -q arm64
+          lipo -archs "$APP/Contents/MacOS/ksnip" | grep -q x86_64
+
+          codesign --force --deep -s - "$APP"
+          codesign --verify --deep --strict "$APP"
+
+          mkdir dmgdir
+          cp -R "$APP" dmgdir/
+          ln -s /Applications dmgdir/Applications
+          hdiutil create -volname "ksnip beta" -srcfolder dmgdir -ov -format UDZO "ksnip-${VERSION}-beta-universal.dmg"
+          ls -l ksnip-*.dmg
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ksnip-macos-dmg
+          path: ksnip-*.dmg
+          retention-days: 14
